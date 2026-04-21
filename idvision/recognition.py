@@ -1,6 +1,7 @@
 import json
 import threading
 import time
+from collections import deque
 from pathlib import Path
 
 import cv2
@@ -14,14 +15,17 @@ FACE_SIZE = 200
 
 
 class FaceRecognizer:
-    """LBPH recogniser. If model assets are missing, `ready` is False and
-    `recognize` always returns a no-match — callers can still run detect-only."""
+    """LBPH recogniser with a per-label streak filter to suppress flickery false
+    positives. If model assets are missing, `ready` is False and `recognize`
+    always returns a no-match — callers can still run detect-only."""
 
     def __init__(self):
         self.ready = False
         self.model = None
         self.label_map = {}
         self.person_info = {}
+        self._recent = deque(maxlen=max(1, config.RECOGNITION_STREAK_WINDOW))
+        self._lock = threading.Lock()
         self._load()
 
     def _load(self):
@@ -47,12 +51,20 @@ class FaceRecognizer:
         self.ready = True
         print(f"[recognition] Loaded LBPH model with {len(self.label_map)} labels.")
 
+    def _record(self, label):
+        with self._lock:
+            self._recent.append(label)
+            return self._recent.count(label) if label is not None else 0
+
     def recognize(self, gray_face):
         if not self.ready:
             return None, None, float("inf")
 
         label, confidence = self.model.predict(gray_face)
+
+        # Below threshold or unknown label -> record a miss and bail
         if confidence >= config.LBPH_CONFIDENCE_THRESHOLD or label not in self.label_map:
+            self._record(None)
             return None, None, confidence
 
         folder_name = self.label_map[label]
@@ -60,10 +72,17 @@ class FaceRecognizer:
             person_id_str, name = folder_name.split("_", 1)
             person_id = int(person_id_str)
         except (ValueError, IndexError):
+            self._record(None)
             return None, None, confidence
 
         info = self.person_info.get(person_id)
         if not info:
+            self._record(None)
+            return None, None, confidence
+
+        # Streak filter: require this label to show up in >= N of the last M calls
+        hits = self._record(label)
+        if hits < config.RECOGNITION_STREAK_REQUIRED:
             return None, None, confidence
 
         return info.get("name", name).strip(), info.get("category", "unknown"), confidence

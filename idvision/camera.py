@@ -48,13 +48,13 @@ def gen_frames():
 
                 gray_face = prepare_face(frame, x, y, bw, bh)
                 if gray_face is not None:
-                    name, category, _conf = recognizer.recognize(gray_face)
+                    name, category, conf = recognizer.recognize(gray_face)
                     if name:
-                        label = f"{name} ({category})"
+                        label = f"{name} ({category}) {conf:.0f}"
                         color = (0, 0, 255) if category in ("criminal", "crime") else (0, 165, 255)
                         log_alert(name, category)
                     elif recognizer.ready:
-                        label = "Unknown"
+                        label = f"Unknown {conf:.0f}"
                         color = (0, 255, 255)
 
                 cv2.rectangle(frame, (x, y), (x + bw, y + bh), color, 2)
