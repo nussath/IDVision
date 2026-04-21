@@ -1,7 +1,12 @@
+import os
 import sqlite3
+
+from dotenv import load_dotenv
 from passlib.context import CryptContext
 
-DB_NAME = "surveillance.db"
+load_dotenv()
+
+DB_NAME = os.environ.get("DB_PATH", "surveillance.db")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_connection():
@@ -61,14 +66,24 @@ def init_db():
     )
     """)
 
-    cur.execute("SELECT * FROM users WHERE username=?", ("police",))
-    user = cur.fetchone()
+    cur.execute("SELECT id FROM users WHERE role='admin' LIMIT 1")
+    has_admin = cur.fetchone() is not None
 
-    if not user:
-        cur.execute("""
-        INSERT INTO users (username, hashed_password, role)
-        VALUES (?, ?, ?)
-        """, ("police", hash_password("1234"), "admin"))
+    if not has_admin:
+        admin_user = os.environ.get("INITIAL_ADMIN_USERNAME", "").strip()
+        admin_pass = os.environ.get("INITIAL_ADMIN_PASSWORD", "")
+        if admin_user and admin_pass:
+            cur.execute("""
+            INSERT INTO users (username, hashed_password, role)
+            VALUES (?, ?, ?)
+            """, (admin_user, hash_password(admin_pass), "admin"))
+            print(f"[init_db] Bootstrapped admin user '{admin_user}' from environment.")
+        else:
+            print(
+                "[init_db] WARNING: no admin user exists. "
+                "Set INITIAL_ADMIN_USERNAME and INITIAL_ADMIN_PASSWORD in .env "
+                "and restart, or register an admin via /register."
+            )
 
     conn.commit()
     conn.close()

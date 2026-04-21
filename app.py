@@ -1,3 +1,6 @@
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from starlette.middleware.sessions import SessionMiddleware
@@ -14,13 +17,23 @@ from database import (
     get_alerts,
 )
 
+load_dotenv()
+
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY is not set. Copy .env.example to .env and fill in a random value."
+    )
+
+CAMERA_INDEX = int(os.environ.get("CAMERA_INDEX", "0"))
+
 app = FastAPI()
-app.add_middleware(SessionMiddleware, secret_key="supersecretkey")
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 init_db()
 
 MODEL_PATH = "face_detection_yunet_2023mar.onnx"
-camera = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+camera = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_DSHOW)
 
 face_detector = cv2.FaceDetectorYN.create(
     MODEL_PATH,

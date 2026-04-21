@@ -1,0 +1,110 @@
+# IDVision
+
+Face-recognition and ID-verification system for identifying criminals and missing persons from a live camera feed. Built with FastAPI, OpenCV (YuNet + LBPH), and SQLite.
+
+## Features
+
+- Login / registration with bcrypt-hashed passwords and session cookies.
+- Dashboard with live webcam feed and YuNet face detection.
+- CRUD for criminals and missing persons.
+- Alert log written to SQLite and `alerts_log.txt`.
+- LBPH model training pipeline against the `dataset/` folder.
+- Basic liveness check (blur variance).
+
+## Requirements
+
+- Python 3.10+
+- A webcam (for the live feed)
+- Windows / macOS / Linux
+
+Python packages are listed in `requirements.txt`.
+
+## Setup
+
+```bash
+# 1. Create and activate a virtual environment
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # macOS / Linux
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Configure environment
+copy .env.example .env         # Windows
+# cp .env.example .env         # macOS / Linux
+# Edit .env and set SECRET_KEY. Optionally set INITIAL_ADMIN_USERNAME/PASSWORD.
+
+# 4. Initialise the database
+python init_project.py
+```
+
+Generate a random `SECRET_KEY`:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+## Running
+
+```bash
+uvicorn app:app --reload
+```
+
+Open http://127.0.0.1:8000/ in your browser.
+
+- If you set `INITIAL_ADMIN_USERNAME` and `INITIAL_ADMIN_PASSWORD` in `.env` before first run, that account is created automatically.
+- Otherwise, register an account at `/register` (select role `admin`).
+
+## Training the recognition model
+
+Place images under `dataset/criminals/<person_name>/` and `dataset/missing_persons/<person_name>/`, then:
+
+```bash
+python train_lbph.py
+```
+
+This writes `lbph_model.yml` and `label_map.npy`.
+
+To run the standalone OpenCV window recogniser:
+
+```bash
+python live_recognition_haar.py
+```
+
+## Project layout
+
+```
+app.py                           # FastAPI app (login, dashboard, video feed)
+database.py                      # SQLite schema + CRUD + auth
+init_project.py                  # One-off DB initialiser
+train_lbph.py                    # Builds lbph_model.yml + label_map.npy from dataset/
+live_recognition_haar.py         # Standalone Haar+LBPH recogniser w/ alerts
+liveness_mobilenet.py            # Blur-variance liveness check
+dataset/                         # Training images, grouped per person
+dnn_model/                       # Caffe SSD face detector assets
+face_detection_yunet_2023mar.onnx  # YuNet ONNX model (used by app.py)
+uploads/                         # Uploaded ID documents / photos
+```
+
+## Configuration
+
+All runtime configuration lives in `.env` (see `.env.example`):
+
+| Variable                  | Purpose                                             |
+|---------------------------|-----------------------------------------------------|
+| `SECRET_KEY`              | Session cookie signing key. **Required.**           |
+| `INITIAL_ADMIN_USERNAME`  | Bootstraps first admin if no admin exists.          |
+| `INITIAL_ADMIN_PASSWORD`  | Password for the bootstrap admin.                   |
+| `DB_PATH`                 | SQLite file path. Defaults to `surveillance.db`.    |
+| `CAMERA_INDEX`            | `cv2.VideoCapture` index. Defaults to `0`.          |
+
+## Security notes
+
+- `.env` and `surveillance.db` are gitignored. Never commit real credentials or production data.
+- The default install uses `SessionMiddleware` — sessions are signed, not encrypted. Don't put sensitive data in the session.
+- This project is educational. It is not hardened for production surveillance use.
+
+## Status
+
+Work in progress. See open items in project notes — recognition wiring, role-based route guards, upload validation, and UI polish are planned.
