@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 
 from .. import db
 from ..deps import current_user, forbidden, redirect_login
-from ..enrollment import save_uploads
+from ..enrollment import remove_person_folder, save_uploads
 from .dashboard import render_dashboard
 
 router = APIRouter()
@@ -67,3 +67,45 @@ async def create_missing_person(
     if image_path:
         db.update_missing_person(person_id, image_path=image_path)
     return RedirectResponse("/dashboard", status_code=303)
+
+
+@router.post("/criminals/{criminal_id}/delete")
+def delete_criminal_route(request: Request, criminal_id: int):
+    user = current_user(request)
+    if not user:
+        return redirect_login()
+    if user.get("role") != "admin":
+        return forbidden(request)
+
+    row = db.get_criminal(criminal_id)
+    if not row:
+        return render_dashboard(request, user, flash="Criminal not found.",
+                                flash_kind="err", status_code=404)
+
+    db.delete_criminal(criminal_id)
+    removed = remove_person_folder("criminals", criminal_id, row["name"])
+    msg = f"Deleted criminal '{row['name']}'."
+    if removed:
+        msg += " Dataset folder removed — click Retrain to update the model."
+    return render_dashboard(request, user, flash=msg, flash_kind="ok")
+
+
+@router.post("/missing/{person_id}/delete")
+def delete_missing_route(request: Request, person_id: int):
+    user = current_user(request)
+    if not user:
+        return redirect_login()
+    if user.get("role") != "admin":
+        return forbidden(request)
+
+    row = db.get_missing_person(person_id)
+    if not row:
+        return render_dashboard(request, user, flash="Missing person not found.",
+                                flash_kind="err", status_code=404)
+
+    db.delete_missing_person(person_id)
+    removed = remove_person_folder("missing_persons", person_id, row["name"])
+    msg = f"Deleted missing person '{row['name']}'."
+    if removed:
+        msg += " Dataset folder removed — click Retrain to update the model."
+    return render_dashboard(request, user, flash=msg, flash_kind="ok")

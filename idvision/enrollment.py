@@ -1,3 +1,5 @@
+import shutil
+
 from . import config
 from .utils import (
     ImageValidationError,
@@ -5,6 +7,21 @@ from .utils import (
     safe_filename,
     validate_image_bytes,
 )
+
+
+def remove_person_folder(category_folder: str, person_id: int, person_name: str) -> bool:
+    """Delete dataset/{category_folder}/{id}_{name}/ if it exists. Bounded to
+    config.DATASET_DIR — never removes anything outside it."""
+    target = (config.DATASET_DIR / category_folder / person_folder(person_id, person_name)).resolve()
+    root = config.DATASET_DIR.resolve()
+    try:
+        target.relative_to(root)
+    except ValueError:
+        return False
+    if target.is_dir():
+        shutil.rmtree(target)
+        return True
+    return False
 
 
 def save_uploads(uploads, category_folder: str, person_id: int, person_name: str):

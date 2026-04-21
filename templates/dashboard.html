@@ -93,13 +93,21 @@
         <h2>Criminals</h2>
         {% if criminals %}
         <table>
-            <tr><th>ID</th><th>Name</th><th>Crime</th><th>Status</th></tr>
+            <tr><th>ID</th><th>Name</th><th>Crime</th><th>Status</th>{% if is_admin %}<th></th>{% endif %}</tr>
             {% for c in criminals %}
             <tr>
                 <td>{{ c.id }}</td>
                 <td>{{ c.name }}</td>
                 <td>{{ c.crime_details }}</td>
                 <td><span class="pill criminal">{{ c.status }}</span></td>
+                {% if is_admin %}
+                <td>
+                    <form method="post" action="/criminals/{{ c.id }}/delete" class="inline-action"
+                          onsubmit="return confirm('Delete criminal {{ c.name|e }}? This removes the DB row and the dataset/criminals/{{ c.id }}_{{ c.name|e }}/ folder.');">
+                        <button type="submit" class="danger">Delete</button>
+                    </form>
+                </td>
+                {% endif %}
             </tr>
             {% endfor %}
         </table>
@@ -110,13 +118,21 @@
         <h2>Missing persons</h2>
         {% if missing_persons %}
         <table>
-            <tr><th>ID</th><th>Name</th><th>Last seen</th><th>Status</th></tr>
+            <tr><th>ID</th><th>Name</th><th>Last seen</th><th>Status</th>{% if is_admin %}<th></th>{% endif %}</tr>
             {% for m in missing_persons %}
             <tr>
                 <td>{{ m.id }}</td>
                 <td>{{ m.name }}</td>
                 <td>{{ m.last_seen }}</td>
                 <td><span class="pill missing">{{ m.status }}</span></td>
+                {% if is_admin %}
+                <td>
+                    <form method="post" action="/missing/{{ m.id }}/delete" class="inline-action"
+                          onsubmit="return confirm('Delete missing person {{ m.name|e }}? This removes the DB row and the dataset/missing_persons/{{ m.id }}_{{ m.name|e }}/ folder.');">
+                        <button type="submit" class="danger">Delete</button>
+                    </form>
+                </td>
+                {% endif %}
             </tr>
             {% endfor %}
         </table>
