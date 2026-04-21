@@ -165,6 +165,12 @@ def delete_user(user_id):
         return cur.rowcount > 0
 
 
+def has_any_admin():
+    with _conn() as conn:
+        cur = conn.execute("SELECT 1 FROM users WHERE role='admin' LIMIT 1")
+        return cur.fetchone() is not None
+
+
 # ---------- Criminals ----------
 
 def add_criminal(name, age, gender, crime_details, image_path=""):

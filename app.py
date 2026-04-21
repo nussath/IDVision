@@ -15,6 +15,7 @@ from database import (
     get_criminals,
     get_missing_persons,
     get_alerts,
+    has_any_admin,
 )
 from recognition import FaceRecognizer, log_alert, prepare_face
 
@@ -27,9 +28,18 @@ if not SECRET_KEY:
     )
 
 CAMERA_INDEX = int(os.environ.get("CAMERA_INDEX", "0"))
+SESSION_MAX_AGE_MINUTES = int(os.environ.get("SESSION_MAX_AGE_MINUTES", "60"))
+
+ALLOWED_ROLES = {"admin", "viewer"}
 
 app = FastAPI()
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    max_age=SESSION_MAX_AGE_MINUTES * 60,
+    same_site="lax",
+    https_only=False,
+)
 
 init_db()
 
@@ -47,8 +57,21 @@ face_detector = cv2.FaceDetectorYN.create(
 
 recognizer = FaceRecognizer()
 
-def is_logged_in(request: Request):
+
+def current_user(request: Request):
     return request.session.get("user")
+
+
+def _redirect_login():
+    return RedirectResponse("/", status_code=303)
+
+
+def _forbidden(message="Admin access required."):
+    return HTMLResponse(
+        f"<h3>403 Forbidden</h3><p>{message}</p><a href='/dashboard'>Back</a>",
+        status_code=403,
+    )
+
 
 def gen_frames():
     while True:
@@ -102,72 +125,113 @@ def gen_frames():
             b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
         )
 
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    user = request.session.get("user")
-    if user:
+    if current_user(request):
         return RedirectResponse("/dashboard", status_code=303)
 
     return """
     <html>
-    <head><title>Police Surveillance Login</title></head>
+    <head><title>IDVision — Login</title></head>
     <body style="font-family:Arial;padding:40px">
-        <h2>Police Surveillance System</h2>
+        <h2>IDVision</h2>
         <h3>Login</h3>
         <form method="post" action="/login">
             <input name="username" placeholder="Username" required><br><br>
             <input name="password" type="password" placeholder="Password" required><br><br>
             <button type="submit">Login</button>
         </form>
-        <br>
-        <a href="/register">Register New User</a>
     </body>
     </html>
     """
 
+
 @app.get("/register", response_class=HTMLResponse)
-def register_page():
-    return """
+def register_page(request: Request):
+    user = current_user(request)
+    bootstrap = not has_any_admin()
+    if not bootstrap:
+        if not user:
+            return _redirect_login()
+        if user.get("role") != "admin":
+            return _forbidden("Only admins can register new users.")
+
+    role_options = (
+        '<option value="admin" selected>Admin (bootstrap)</option>'
+        if bootstrap
+        else '<option value="viewer">Viewer</option><option value="admin">Admin</option>'
+    )
+    header = "Bootstrap first admin" if bootstrap else "Register User"
+    back_link = "/" if bootstrap else "/dashboard"
+
+    return f"""
     <html>
-    <head><title>Register</title></head>
+    <head><title>{header}</title></head>
     <body style="font-family:Arial;padding:40px">
-        <h2>Register User</h2>
+        <h2>{header}</h2>
         <form method="post" action="/register">
             <input name="username" placeholder="Username" required><br><br>
             <input name="password" type="password" placeholder="Password" required><br><br>
-            <select name="role">
-                <option value="viewer">Viewer</option>
-                <option value="admin">Admin</option>
-            </select><br><br>
+            <select name="role">{role_options}</select><br><br>
             <button type="submit">Register</button>
         </form>
         <br>
-        <a href="/">Back to Login</a>
+        <a href="{back_link}">Back</a>
     </body>
     </html>
     """
 
+
 @app.post("/register")
-def do_register(username: str = Form(...), password: str = Form(...), role: str = Form(...)):
+def do_register(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    role: str = Form(...),
+):
+    user = current_user(request)
+    bootstrap = not has_any_admin()
+
+    if bootstrap:
+        role = "admin"
+    else:
+        if not user:
+            return _redirect_login()
+        if user.get("role") != "admin":
+            return _forbidden("Only admins can register new users.")
+        if role not in ALLOWED_ROLES:
+            return HTMLResponse("<h3>Invalid role.</h3>", status_code=400)
+
+    username = username.strip()
+    if not username or not password:
+        return HTMLResponse("<h3>Username and password are required.</h3>", status_code=400)
+
     ok = register_user(username, password, role)
     if ok:
-        return RedirectResponse("/", status_code=303)
-    return HTMLResponse("<h3>Username already exists</h3><a href='/register'>Try again</a>", status_code=400)
+        return RedirectResponse("/" if bootstrap else "/dashboard", status_code=303)
+    return HTMLResponse(
+        "<h3>Username already exists.</h3><a href='/register'>Try again</a>",
+        status_code=400,
+    )
+
 
 @app.post("/login")
 def do_login(request: Request, username: str = Form(...), password: str = Form(...)):
-    user = authenticate_user(username, password)
+    user = authenticate_user(username.strip(), password)
     if user:
         request.session["user"] = {"username": user["username"], "role": user["role"]}
         return RedirectResponse("/dashboard", status_code=303)
     return HTMLResponse("<h3>Invalid username or password</h3><a href='/'>Back</a>", status_code=401)
 
+
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
-    user = is_logged_in(request)
+    user = current_user(request)
     if not user:
-        return RedirectResponse("/", status_code=303)
+        return _redirect_login()
 
+    is_admin = user.get("role") == "admin"
     criminals = get_criminals()
     missing_persons = get_missing_persons()
     alerts = get_alerts()
@@ -187,17 +251,8 @@ def dashboard(request: Request):
         for a in alerts
     ) or "<tr><td colspan='3'>No alerts</td></tr>"
 
-    return f"""
-    <html>
-    <head><title>Dashboard</title></head>
-    <body style="font-family:Arial;padding:30px">
-        <h2>Welcome, {user['username']}</h2>
-        <a href="/logout">Logout</a>
-
-        <hr>
-        <h3>Live Webcam Feed</h3>
-        <img src="/video_feed" width="720" style="border:2px solid black;"><br><br>
-
+    admin_forms = (
+        """
         <hr>
         <h3>Add Criminal</h3>
         <form method="post" action="/criminals/add">
@@ -216,6 +271,25 @@ def dashboard(request: Request):
             <input name="last_seen" placeholder="Last seen location" required>
             <button type="submit">Add Missing Person</button>
         </form>
+
+        <p><a href="/register">Register new user</a></p>
+        """
+        if is_admin
+        else "<p><em>Viewer role — read-only access.</em></p>"
+    )
+
+    return f"""
+    <html>
+    <head><title>Dashboard</title></head>
+    <body style="font-family:Arial;padding:30px">
+        <h2>Welcome, {user['username']} <small>({user['role']})</small></h2>
+        <a href="/logout">Logout</a>
+
+        <hr>
+        <h3>Live Webcam Feed</h3>
+        <img src="/video_feed" width="720" style="border:2px solid black;"><br><br>
+
+        {admin_forms}
 
         <hr>
         <h3>Criminals</h3>
@@ -239,19 +313,24 @@ def dashboard(request: Request):
     </html>
     """
 
+
 @app.post("/criminals/add")
 def create_criminal(
     request: Request,
     name: str = Form(...),
     age: int = Form(None),
     gender: str = Form(""),
-    crime_details: str = Form(...)
+    crime_details: str = Form(...),
 ):
-    if not is_logged_in(request):
-        return RedirectResponse("/", status_code=303)
+    user = current_user(request)
+    if not user:
+        return _redirect_login()
+    if user.get("role") != "admin":
+        return _forbidden()
 
-    add_criminal(name, age, gender, crime_details)
+    add_criminal(name.strip(), age, gender.strip(), crime_details.strip())
     return RedirectResponse("/dashboard", status_code=303)
+
 
 @app.post("/missing/add")
 def create_missing_person(
@@ -259,23 +338,28 @@ def create_missing_person(
     name: str = Form(...),
     age: int = Form(None),
     gender: str = Form(""),
-    last_seen: str = Form(...)
+    last_seen: str = Form(...),
 ):
-    if not is_logged_in(request):
-        return RedirectResponse("/", status_code=303)
+    user = current_user(request)
+    if not user:
+        return _redirect_login()
+    if user.get("role") != "admin":
+        return _forbidden()
 
-    add_missing_person(name, age, gender, last_seen)
+    add_missing_person(name.strip(), age, gender.strip(), last_seen.strip())
     return RedirectResponse("/dashboard", status_code=303)
+
 
 @app.get("/video_feed")
 def video_feed(request: Request):
-    if not is_logged_in(request):
-        return RedirectResponse("/", status_code=303)
+    if not current_user(request):
+        return _redirect_login()
 
     return StreamingResponse(
         gen_frames(),
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
+
 
 @app.get("/logout")
 def logout(request: Request):
