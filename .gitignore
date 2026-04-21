@@ -1,0 +1,7 @@
+venv/
+venv1/
+__pycache__/
+*.pyc
+.idea/
+surveillance.db
+.claude/

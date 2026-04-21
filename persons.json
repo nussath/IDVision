@@ -1,0 +1,27 @@
+[
+  {
+    "person_id": 1,
+    "name": "Riya",
+    "category": "missing"
+  },
+  {
+    "person_id": 2,
+    "name": "Arun",
+    "category": "criminal"
+  },
+  {
+    "person_id": 3,
+    "name": "Shreya",
+    "category": "criminal"
+  },
+  {
+    "person_id": 4,
+    "name": "Varada",
+    "category": "missing"
+  },
+  {
+    "person_id": 5,
+    "name": "Naji",
+    "category": "missing"
+  }
+]
