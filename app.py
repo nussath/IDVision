@@ -16,6 +16,7 @@ from database import (
     get_missing_persons,
     get_alerts,
 )
+from recognition import FaceRecognizer, log_alert, prepare_face
 
 load_dotenv()
 
@@ -44,6 +45,8 @@ face_detector = cv2.FaceDetectorYN.create(
     5000
 )
 
+recognizer = FaceRecognizer()
+
 def is_logged_in(request: Request):
     return request.session.get("user")
 
@@ -66,14 +69,28 @@ def gen_frames():
                 bw = max(1, bw)
                 bh = max(1, bh)
 
-                cv2.rectangle(frame, (x, y), (x + bw, y + bh), (0, 255, 0), 2)
+                label = "Face Detected"
+                color = (0, 255, 0)
+
+                gray_face = prepare_face(frame, x, y, bw, bh)
+                if gray_face is not None:
+                    name, category, _conf = recognizer.recognize(gray_face)
+                    if name:
+                        label = f"{name} ({category})"
+                        color = (0, 0, 255) if category in ("criminal", "crime") else (0, 165, 255)
+                        log_alert(name, category)
+                    elif recognizer.ready:
+                        label = "Unknown"
+                        color = (0, 255, 255)
+
+                cv2.rectangle(frame, (x, y), (x + bw, y + bh), color, 2)
                 cv2.putText(
                     frame,
-                    "Face Detected",
+                    label,
                     (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.7,
-                    (0, 255, 0),
+                    color,
                     2
                 )
 
