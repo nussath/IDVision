@@ -82,7 +82,12 @@ def train():
                 print(f"[train] No faces found in {person_path}; skipping.")
                 continue
 
-            label_map[current_label] = entry
+            label_map[current_label] = {
+                "folder": entry,
+                "person_id": person_id,
+                "name": person_name,
+                "category": category_value,
+            }
             persons.append({
                 "person_id": person_id,
                 "name": person_name,

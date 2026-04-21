@@ -56,36 +56,48 @@ class FaceRecognizer:
             self._recent.append(label)
             return self._recent.count(label) if label is not None else 0
 
+    def _resolve_label(self, label):
+        """Return (name, category) for a trained label. Supports both the new
+        dict-valued label_map and the legacy string form (folder name only,
+        with category derived from persons.json — had id-collision bugs)."""
+        entry = self.label_map.get(label)
+        if entry is None:
+            return None, None
+        if isinstance(entry, dict):
+            return entry.get("name"), entry.get("category", "unknown")
+
+        # Legacy format: entry is just the folder name string "<id>_<name>".
+        # Fall back to persons.json but this path is ambiguous across tables.
+        try:
+            person_id_str, name = entry.split("_", 1)
+            person_id = int(person_id_str)
+        except (ValueError, IndexError):
+            return None, None
+        info = self.person_info.get(person_id)
+        if not info:
+            return None, None
+        return info.get("name", name).strip(), info.get("category", "unknown")
+
     def recognize(self, gray_face):
         if not self.ready:
             return None, None, float("inf")
 
         label, confidence = self.model.predict(gray_face)
 
-        # Below threshold or unknown label -> record a miss and bail
         if confidence >= config.LBPH_CONFIDENCE_THRESHOLD or label not in self.label_map:
             self._record(None)
             return None, None, confidence
 
-        folder_name = self.label_map[label]
-        try:
-            person_id_str, name = folder_name.split("_", 1)
-            person_id = int(person_id_str)
-        except (ValueError, IndexError):
+        name, category = self._resolve_label(label)
+        if not name:
             self._record(None)
             return None, None, confidence
 
-        info = self.person_info.get(person_id)
-        if not info:
-            self._record(None)
-            return None, None, confidence
-
-        # Streak filter: require this label to show up in >= N of the last M calls
         hits = self._record(label)
         if hits < config.RECOGNITION_STREAK_REQUIRED:
             return None, None, confidence
 
-        return info.get("name", name).strip(), info.get("category", "unknown"), confidence
+        return name, category, confidence
 
 
 class AlertCooldown:
