@@ -1,0 +1,16 @@
+{% extends "_base.html" %}
+{% block title %}IDVision — Login{% endblock %}
+{% block body %}
+<div class="auth-shell">
+    <div class="card auth-card">
+        <h2>IDVision</h2>
+        <p class="muted">Sign in to continue.</p>
+        {% if error %}<div class="flash err">{{ error }}</div>{% endif %}
+        <form method="post" action="/login" class="inline">
+            <input name="username" placeholder="Username" required autofocus>
+            <input name="password" type="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

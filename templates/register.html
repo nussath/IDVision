@@ -1,0 +1,29 @@
+{% extends "_base.html" %}
+{% block title %}{{ "Bootstrap admin" if bootstrap else "Register user" }}{% endblock %}
+{% block body %}
+<div class="auth-shell">
+    <div class="card auth-card">
+        <h2>{{ "Bootstrap first admin" if bootstrap else "Register user" }}</h2>
+        {% if bootstrap %}
+        <p class="muted">No admin exists yet. This first account will be created as admin.</p>
+        {% endif %}
+        {% if error %}<div class="flash err">{{ error }}</div>{% endif %}
+        <form method="post" action="/register" class="inline">
+            <input name="username" placeholder="Username" required autofocus>
+            <input name="password" type="password" placeholder="Password" required>
+            {% if bootstrap %}
+            <input type="hidden" name="role" value="admin">
+            {% else %}
+            <select name="role">
+                <option value="viewer">Viewer</option>
+                <option value="admin">Admin</option>
+            </select>
+            {% endif %}
+            <button type="submit">Create account</button>
+        </form>
+        <p class="muted" style="margin-top:14px">
+            <a href="{{ '/' if bootstrap else '/dashboard' }}">Back</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

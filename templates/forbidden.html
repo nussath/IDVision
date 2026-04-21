@@ -1,0 +1,11 @@
+{% extends "_base.html" %}
+{% block title %}Forbidden{% endblock %}
+{% block body %}
+<div class="auth-shell">
+    <div class="card auth-card">
+        <h2>403 Forbidden</h2>
+        <p>{{ message or "Admin access required." }}</p>
+        <p><a href="/dashboard">Back to dashboard</a></p>
+    </div>
+</div>
+{% endblock %}

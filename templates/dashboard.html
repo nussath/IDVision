@@ -1,0 +1,142 @@
+{% extends "_base.html" %}
+{% block title %}IDVision — Dashboard{% endblock %}
+{% block body %}
+<header class="topbar">
+    <h1>IDVision</h1>
+    <div>
+        <span class="who">
+            {{ user.username }}
+            <span class="pill {{ user.role }}">{{ user.role }}</span>
+        </span>
+        {% if is_admin %}<a href="/register">New user</a>{% endif %}
+        <a href="/logout">Logout</a>
+    </div>
+</header>
+
+<main>
+    {% if flash %}<div class="flash {{ flash_kind or 'ok' }}">{{ flash }}</div>{% endif %}
+
+    <div class="grid-2">
+        <section class="card">
+            <h2>Live camera</h2>
+            <img src="/video_feed" class="feed-frame" alt="Live feed">
+            <p class="muted" style="margin-top:10px">
+                Recognition: {{ "enabled" if recognizer_ready else "disabled (model not loaded — run /retrain)" }}
+            </p>
+        </section>
+
+        <section class="card">
+            <h2>Recent detections</h2>
+            {% if recent %}
+            <table>
+                <tr><th>Name</th><th>Category</th><th>Time</th></tr>
+                {% for a in recent %}
+                <tr>
+                    <td>{{ a.person_name }}</td>
+                    <td><span class="pill {{ a.category }}">{{ a.category }}</span></td>
+                    <td class="muted">{{ a.timestamp }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% else %}
+            <p class="empty">No detections yet.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    {% if is_admin %}
+    <div class="grid-2">
+        <section class="card">
+            <h2>Add criminal</h2>
+            <form method="post" action="/criminals/add" enctype="multipart/form-data" class="inline">
+                <input name="name" placeholder="Name" required>
+                <div class="row">
+                    <input name="age" type="number" placeholder="Age" min="0">
+                    <input name="gender" placeholder="Gender">
+                </div>
+                <input name="crime_details" placeholder="Crime details" required>
+                <input type="file" name="photo" accept="image/*" multiple>
+                <button type="submit">Add criminal</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>Add missing person</h2>
+            <form method="post" action="/missing/add" enctype="multipart/form-data" class="inline">
+                <input name="name" placeholder="Name" required>
+                <div class="row">
+                    <input name="age" type="number" placeholder="Age" min="0">
+                    <input name="gender" placeholder="Gender">
+                </div>
+                <input name="last_seen" placeholder="Last seen location" required>
+                <input type="file" name="photo" accept="image/*" multiple>
+                <button type="submit">Add missing person</button>
+            </form>
+        </section>
+    </div>
+
+    <section class="card subtle">
+        <h2>Model</h2>
+        <form method="post" action="/retrain" class="inline" style="max-width:260px">
+            <button type="submit">Retrain recognition model</button>
+        </form>
+        <p class="muted" style="margin-top:10px">
+            Trains LBPH on everything in <code>dataset/</code> and regenerates
+            <code>persons.json</code>. Run after adding photos.
+        </p>
+    </section>
+    {% else %}
+    <p class="muted">Viewer role — read-only access.</p>
+    {% endif %}
+
+    <section class="card">
+        <h2>Criminals</h2>
+        {% if criminals %}
+        <table>
+            <tr><th>ID</th><th>Name</th><th>Crime</th><th>Status</th></tr>
+            {% for c in criminals %}
+            <tr>
+                <td>{{ c.id }}</td>
+                <td>{{ c.name }}</td>
+                <td>{{ c.crime_details }}</td>
+                <td><span class="pill criminal">{{ c.status }}</span></td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p class="empty">No criminals added.</p>{% endif %}
+    </section>
+
+    <section class="card">
+        <h2>Missing persons</h2>
+        {% if missing_persons %}
+        <table>
+            <tr><th>ID</th><th>Name</th><th>Last seen</th><th>Status</th></tr>
+            {% for m in missing_persons %}
+            <tr>
+                <td>{{ m.id }}</td>
+                <td>{{ m.name }}</td>
+                <td>{{ m.last_seen }}</td>
+                <td><span class="pill missing">{{ m.status }}</span></td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p class="empty">No missing persons added.</p>{% endif %}
+    </section>
+
+    <section class="card">
+        <h2>All alerts</h2>
+        {% if alerts %}
+        <table>
+            <tr><th>Name</th><th>Category</th><th>Timestamp</th></tr>
+            {% for a in alerts %}
+            <tr>
+                <td>{{ a.person_name }}</td>
+                <td><span class="pill {{ a.category }}">{{ a.category }}</span></td>
+                <td class="muted">{{ a.timestamp }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p class="empty">No alerts.</p>{% endif %}
+    </section>
+</main>
+{% endblock %}
