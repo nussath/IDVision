@@ -6,4 +6,5 @@ __pycache__/
 surveillance.db
 .claude/
 .env
+alerts_log.txt
 

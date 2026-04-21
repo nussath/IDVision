@@ -1,14 +1,11 @@
-import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-from dotenv import load_dotenv
 from passlib.context import CryptContext
 
-load_dotenv()
+from . import config
 
-DB_NAME = os.environ.get("DB_PATH", "surveillance.db")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 CRIMINAL_FIELDS = {"name", "age", "gender", "crime_details", "image_path", "status"}
@@ -16,7 +13,7 @@ MISSING_FIELDS = {"name", "age", "gender", "last_seen", "image_path", "status"}
 
 
 def get_connection():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(config.DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -55,7 +52,6 @@ def _now_iso():
 def init_db():
     with _conn() as conn:
         cur = conn.cursor()
-
         cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,7 +60,6 @@ def init_db():
             role TEXT NOT NULL
         )
         """)
-
         cur.execute("""
         CREATE TABLE IF NOT EXISTS criminals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,7 +71,6 @@ def init_db():
             status TEXT DEFAULT 'wanted'
         )
         """)
-
         cur.execute("""
         CREATE TABLE IF NOT EXISTS missing_persons (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +82,6 @@ def init_db():
             status TEXT DEFAULT 'missing'
         )
         """)
-
         cur.execute("""
         CREATE TABLE IF NOT EXISTS alerts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -99,17 +92,19 @@ def init_db():
         """)
 
         cur.execute("SELECT id FROM users WHERE role='admin' LIMIT 1")
-        has_admin = cur.fetchone() is not None
-
-        if not has_admin:
-            admin_user = os.environ.get("INITIAL_ADMIN_USERNAME", "").strip()
-            admin_pass = os.environ.get("INITIAL_ADMIN_PASSWORD", "")
-            if admin_user and admin_pass:
-                cur.execute("""
-                INSERT INTO users (username, hashed_password, role)
-                VALUES (?, ?, ?)
-                """, (admin_user, hash_password(admin_pass), "admin"))
-                print(f"[init_db] Bootstrapped admin user '{admin_user}' from environment.")
+        if cur.fetchone() is None:
+            if config.INITIAL_ADMIN_USERNAME and config.INITIAL_ADMIN_PASSWORD:
+                cur.execute(
+                    "INSERT INTO users (username, hashed_password, role) VALUES (?, ?, ?)",
+                    (
+                        config.INITIAL_ADMIN_USERNAME,
+                        hash_password(config.INITIAL_ADMIN_PASSWORD),
+                        "admin",
+                    ),
+                )
+                print(
+                    f"[init_db] Bootstrapped admin user '{config.INITIAL_ADMIN_USERNAME}' from environment."
+                )
             else:
                 print(
                     "[init_db] WARNING: no admin user exists. "

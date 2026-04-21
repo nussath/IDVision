@@ -75,15 +75,32 @@ python live_recognition_haar.py
 ## Project layout
 
 ```
-app.py                           # FastAPI app (login, dashboard, video feed)
-database.py                      # SQLite schema + CRUD + auth
+app.py                           # Uvicorn entrypoint (re-exports idvision.main:app)
 init_project.py                  # One-off DB initialiser
-train_lbph.py                    # Builds lbph_model.yml + label_map.npy from dataset/
-live_recognition_haar.py         # Standalone Haar+LBPH recogniser w/ alerts
+train_lbph.py                    # CLI wrapper around idvision.training.train
+live_recognition_haar.py         # Standalone OpenCV-window recogniser
 liveness_mobilenet.py            # Blur-variance liveness check
+
+idvision/                        # Main application package
+    config.py                      # Env loading + constants
+    db.py                          # SQLite schema + CRUD + auth
+    recognition.py                 # LBPH FaceRecognizer + alert cooldown
+    camera.py                      # Webcam + YuNet detector + gen_frames
+    enrollment.py                  # Photo upload saving
+    training.py                    # LBPH training + persons.json regen
+    utils.py                       # Image validation + filename sanitising
+    deps.py                        # Session helpers + template renderer
+    main.py                        # FastAPI factory, wires everything together
+    routes/
+        auth.py                      # /, /login, /logout, /register
+        dashboard.py                 # /dashboard, /video_feed, /retrain
+        persons.py                   # /criminals/add, /missing/add
+
+templates/                       # Jinja2 templates (_base, login, register,
+                                 # dashboard, forbidden)
 dataset/                         # Training images, grouped per person
 dnn_model/                       # Caffe SSD face detector assets
-face_detection_yunet_2023mar.onnx  # YuNet ONNX model (used by app.py)
+face_detection_yunet_2023mar.onnx  # YuNet ONNX model (used by the live feed)
 uploads/                         # Uploaded ID documents / photos
 ```
 

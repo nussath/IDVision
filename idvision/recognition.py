@@ -1,5 +1,4 @@
 import json
-import os
 import threading
 import time
 from pathlib import Path
@@ -7,13 +6,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from database import add_alert
+from . import config
+from .db import add_alert
 
-LBPH_MODEL_PATH = os.environ.get("LBPH_MODEL_PATH", "lbph_model.yml")
-LABEL_MAP_PATH = os.environ.get("LABEL_MAP_PATH", "label_map.npy")
-PERSONS_JSON_PATH = os.environ.get("PERSONS_JSON_PATH", "persons.json")
-ALERT_COOLDOWN_SECONDS = float(os.environ.get("ALERT_COOLDOWN_SECONDS", "30"))
-LBPH_CONFIDENCE_THRESHOLD = float(os.environ.get("LBPH_CONFIDENCE_THRESHOLD", "70"))
 FACE_SIZE = 200
 
 
@@ -30,7 +25,7 @@ class FaceRecognizer:
 
     def _load(self):
         missing = [
-            p for p in (LBPH_MODEL_PATH, LABEL_MAP_PATH, PERSONS_JSON_PATH)
+            p for p in (config.LBPH_MODEL_PATH, config.LABEL_MAP_PATH, config.PERSONS_JSON_PATH)
             if not Path(p).exists()
         ]
         if missing:
@@ -43,22 +38,20 @@ class FaceRecognizer:
             return
 
         self.model = cv2.face.LBPHFaceRecognizer_create()
-        self.model.read(LBPH_MODEL_PATH)
-        self.label_map = np.load(LABEL_MAP_PATH, allow_pickle=True).item()
-        with open(PERSONS_JSON_PATH, "r") as f:
+        self.model.read(config.LBPH_MODEL_PATH)
+        self.label_map = np.load(config.LABEL_MAP_PATH, allow_pickle=True).item()
+        with open(config.PERSONS_JSON_PATH, "r") as f:
             for p in json.load(f):
                 self.person_info[p["person_id"]] = p
         self.ready = True
         print(f"[recognition] Loaded LBPH model with {len(self.label_map)} labels.")
 
     def recognize(self, gray_face):
-        """Returns (name, category, confidence) or (None, None, confidence).
-        `gray_face` must be a 200x200 grayscale crop."""
         if not self.ready:
             return None, None, float("inf")
 
         label, confidence = self.model.predict(gray_face)
-        if confidence >= LBPH_CONFIDENCE_THRESHOLD or label not in self.label_map:
+        if confidence >= config.LBPH_CONFIDENCE_THRESHOLD or label not in self.label_map:
             return None, None, confidence
 
         folder_name = self.label_map[label]
@@ -76,10 +69,8 @@ class FaceRecognizer:
 
 
 class AlertCooldown:
-    """Per-(name, category) cooldown so the same hit doesn't flood alerts."""
-
-    def __init__(self, seconds=ALERT_COOLDOWN_SECONDS):
-        self.seconds = seconds
+    def __init__(self, seconds=None):
+        self.seconds = seconds if seconds is not None else config.ALERT_COOLDOWN_SECONDS
         self._last = {}
         self._lock = threading.Lock()
 
@@ -98,7 +89,6 @@ _cooldown = AlertCooldown()
 
 
 def log_alert(name, category, log_file="alerts_log.txt"):
-    """Record an alert to the DB and the plaintext log, respecting the cooldown."""
     if not _cooldown.should_alert(name, category):
         return False
     add_alert(name, category)
@@ -111,7 +101,6 @@ def log_alert(name, category, log_file="alerts_log.txt"):
 
 
 def prepare_face(frame_bgr, x, y, w, h, size=FACE_SIZE):
-    """Crop, grayscale, and resize a face region for LBPH. Returns None if invalid."""
     fh, fw = frame_bgr.shape[:2]
     x0, y0 = max(0, x), max(0, y)
     x1, y1 = min(fw, x + w), min(fh, y + h)

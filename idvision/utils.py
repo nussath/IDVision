@@ -1,14 +1,9 @@
 import os
 import re
 
-ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
-MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_MB", "5")) * 1024 * 1024
+from . import config
 
-_MAGIC_SIGNATURES = [
-    (b"\xff\xd8\xff", "jpeg"),
-    (b"\x89PNG\r\n\x1a\n", "png"),
-    (b"RIFF", "webp"),  # WEBP files start with RIFF....WEBP; checked more strictly below
-]
+ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 class ImageValidationError(ValueError):
@@ -25,14 +20,14 @@ def _looks_like_image(head: bytes) -> bool:
     return False
 
 
-def validate_image_bytes(data: bytes, filename: str = ""):
-    """Raise ImageValidationError if data doesn't look like a supported image.
-    Returns the detected extension (with leading dot)."""
+def validate_image_bytes(data: bytes, filename: str = "") -> str:
+    """Raise ImageValidationError if data isn't a supported image. Returns the
+    detected extension (with leading dot)."""
     if not data:
         raise ImageValidationError("Empty file.")
-    if len(data) > MAX_UPLOAD_BYTES:
+    if len(data) > config.MAX_UPLOAD_BYTES:
         raise ImageValidationError(
-            f"File too large ({len(data)} bytes; max {MAX_UPLOAD_BYTES})."
+            f"File too large ({len(data)} bytes; max {config.MAX_UPLOAD_BYTES})."
         )
 
     ext = os.path.splitext(filename)[1].lower()
@@ -62,5 +57,5 @@ def safe_filename(name: str) -> str:
 
 
 def person_folder(person_id: int, name: str) -> str:
-    """Return a folder name like '3_Shreya' — matches the legacy label format."""
+    """Folder name like '3_Shreya' — matches the legacy label format."""
     return f"{int(person_id)}_{safe_filename(name)}"
