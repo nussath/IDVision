@@ -116,6 +116,27 @@ All runtime configuration lives in `.env` (see `.env.example`):
 | `DB_PATH`                 | SQLite file path. Defaults to `surveillance.db`.    |
 | `CAMERA_INDEX`            | `cv2.VideoCapture` index. Defaults to `0`.          |
 
+## Email alerts (optional)
+
+When a known criminal or missing person is recognised in the live feed, IDVision
+can send an email. Configure in `.env`:
+
+```
+EMAIL_ENABLED=true
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=you@gmail.com
+SMTP_PASSWORD=your-16-char-app-password
+ALERT_EMAIL_TO=you@gmail.com,someone-else@example.com
+```
+
+For Gmail, generate an **App Password** (not your normal password) at
+<https://myaccount.google.com/apppasswords>. 2-Step Verification must be on.
+
+Delivery is asynchronous (background thread) so a slow SMTP server won't stall
+the camera feed. Failures are logged and do not raise. Alerts are still written
+to the SQLite DB and `alerts_log.txt` regardless of email config.
+
 ## Security notes
 
 - `.env` and `surveillance.db` are gitignored. Never commit real credentials or production data.

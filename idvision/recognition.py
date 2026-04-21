@@ -8,6 +8,7 @@ import numpy as np
 
 from . import config
 from .db import add_alert
+from .notifications import send_alert_email
 
 FACE_SIZE = 200
 
@@ -91,12 +92,14 @@ _cooldown = AlertCooldown()
 def log_alert(name, category, log_file="alerts_log.txt"):
     if not _cooldown.should_alert(name, category):
         return False
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     add_alert(name, category)
     try:
         with open(log_file, "a", encoding="utf-8") as f:
-            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {name} - {category}\n")
+            f.write(f"{timestamp} - {name} - {category}\n")
     except OSError as e:
         print(f"[recognition] Could not write alert log: {e}")
+    send_alert_email(name, category, timestamp)
     return True
 
 
