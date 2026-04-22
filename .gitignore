@@ -10,3 +10,16 @@ alerts_log.txt
 alerts_snapshots/
 desktop.ini
 
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+
