@@ -4,9 +4,29 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}IDVision{% endblock %}</title>
+    {% macro brandeye() %}
+    <svg class="brand-eye" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"
+         aria-hidden="true">
+        <!-- Almond eye outline forms the "O" letter shape -->
+        <path d="M 2 16 Q 16 3 30 16 Q 16 29 2 16 Z"
+              fill="none" stroke="#4f8cff" stroke-width="1.8"/>
+        <!-- Iris with camera-aperture blades (3, subtle at small size) -->
+        <circle cx="16" cy="16" r="7" fill="#1a3a82"/>
+        <g transform="translate(16 16)" fill="#0b1b40" stroke="#4f8cff" stroke-width="0.4">
+            <path d="M 0 -7 L 2 -2 L -2 -2 Z"/>
+            <path d="M 0 -7 L 2 -2 L -2 -2 Z" transform="rotate(120)"/>
+            <path d="M 0 -7 L 2 -2 L -2 -2 Z" transform="rotate(240)"/>
+        </g>
+        <!-- Pupil -->
+        <circle cx="16" cy="16" r="2.4" fill="#0b1b40"/>
+        <!-- Highlight -->
+        <circle cx="14.5" cy="14.5" r="0.9" fill="#ffffff" opacity="0.9"/>
+    </svg>
+    {% endmacro %}
+
     {% macro navbar(user, is_admin, active) %}
     <header class="topbar">
-        <h1>IDVision</h1>
+        <h1>IDVisi{{ brandeye() }}n</h1>
         <div class="who">
             {{ user.username }}
             <span class="pill {{ user.role }}">{{ user.role }}</span>
@@ -75,6 +95,16 @@
             margin: 0;
             font-size: 18px;
             letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0;
+        }
+        .brand-eye {
+            width: 1.05em;
+            height: 1.05em;
+            vertical-align: -0.14em;
+            margin: 0 0.01em;
+            filter: drop-shadow(0 0 3px rgba(79,140,255,0.45));
         }
         header.topbar .who { color: var(--muted); font-size: 14px; }
         header.topbar a {
