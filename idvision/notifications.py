@@ -51,17 +51,29 @@ def _attach_file(message: EmailMessage, path_str: str):
     )
 
 
-def _send(message: EmailMessage):
+def _send_sync(message: EmailMessage):
+    """Blocking send. Returns (ok: bool, error_message: str|None)."""
     try:
         context = ssl.create_default_context()
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
             server.ehlo()
             server.starttls(context=context)
             server.login(SMTP_USER, SMTP_PASSWORD)
-            server.send_message(message)
-        print(f"[notifications] Email sent to {', '.join(ALERT_EMAIL_TO)}")
+            refused = server.send_message(message)
+        if refused:
+            return False, f"Server refused recipients: {refused}"
+        return True, None
     except Exception as e:
-        print(f"[notifications] Email send failed: {e}")
+        return False, f"{type(e).__name__}: {e}"
+
+
+def _send(message: EmailMessage):
+    """Non-blocking variant used by the camera loop. Prints outcome to stdout."""
+    ok, err = _send_sync(message)
+    if ok:
+        print(f"[notifications] Email sent to {', '.join(ALERT_EMAIL_TO)}")
+    else:
+        print(f"[notifications] Email send failed: {err}")
 
 
 def send_alert_email(name: str, category: str, timestamp: str,
@@ -101,8 +113,8 @@ def send_alert_email(name: str, category: str, timestamp: str,
 
 
 def send_test_email():
-    """Send a test message so admins can verify SMTP config without waiting
-    for a recognition match. Returns (ok: bool, message: str)."""
+    """Send a test message synchronously so the admin page can surface the
+    real SMTP outcome (not just a fire-and-forget ack). Returns (ok, message)."""
     problems = configuration_status()
     if problems:
         return False, "Email not configured: " + "; ".join(problems)
@@ -115,5 +127,11 @@ def send_test_email():
         "This is a test message from the IDVision dashboard. "
         "If you received it, SMTP delivery is working."
     )
-    threading.Thread(target=_send, args=(msg,), daemon=True).start()
-    return True, f"Test email dispatched to {', '.join(ALERT_EMAIL_TO)}."
+    ok, err = _send_sync(msg)
+    if ok:
+        return True, (
+            f"Test email accepted by {SMTP_HOST} for "
+            f"{', '.join(ALERT_EMAIL_TO)}. If it does not arrive within a "
+            "minute, check the Spam folder or the recipient's server quarantine."
+        )
+    return False, f"SMTP error: {err}"
