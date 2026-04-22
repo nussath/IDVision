@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 
 from .. import db
-from ..camera import gen_frames
+from ..camera import gen_frames, is_stopped, start_camera, stop_camera
 from ..deps import current_user, redirect_login, render
 
 router = APIRouter()
@@ -47,7 +47,8 @@ def camera_page(request: Request):
     from ..camera import recognizer
     return render(request, "camera.html",
                   **_base_context(request, "camera",
-                                  recognizer_ready=recognizer.ready))
+                                  recognizer_ready=recognizer.ready,
+                                  camera_stopped=is_stopped()))
 
 
 @router.get("/video_feed")
@@ -58,3 +59,19 @@ def video_feed(request: Request):
         gen_frames(),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
+
+
+@router.post("/camera/stop")
+def camera_stop(request: Request):
+    if not current_user(request):
+        return redirect_login()
+    stop_camera()
+    return RedirectResponse("/camera", status_code=303)
+
+
+@router.post("/camera/start")
+def camera_start(request: Request):
+    if not current_user(request):
+        return redirect_login()
+    start_camera()
+    return RedirectResponse("/camera", status_code=303)

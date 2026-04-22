@@ -23,7 +23,11 @@
                 <td>{{ a.location or "—" }}</td>
                 <td>
                     {% if a.snapshot_path %}
-                    <a href="/snapshot/{{ a.snapshot_path.split('/')[-1].split('\\')[-1] }}" target="_blank">view</a>
+                    {% set snap = a.snapshot_path.split('/')[-1].split('\\')[-1] %}
+                    <a href="/snapshot/{{ snap }}" target="_blank" rel="noopener">
+                        <img src="/snapshot/{{ snap }}" alt="snapshot"
+                             style="height:56px;border-radius:4px;border:1px solid var(--border);display:block">
+                    </a>
                     {% else %}
                     <span class="muted">—</span>
                     {% endif %}

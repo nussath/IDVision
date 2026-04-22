@@ -5,8 +5,30 @@
 
 <main>
     <section class="card">
-        <h2>Live camera feed</h2>
-        <img src="/video_feed" class="feed-frame" alt="Live feed">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+            <h2 style="margin:0">Live camera feed</h2>
+            <div>
+                {% if camera_stopped %}
+                <form method="post" action="/camera/start" class="inline-action">
+                    <button type="submit">Start camera</button>
+                </form>
+                {% else %}
+                <form method="post" action="/camera/stop" class="inline-action"
+                      onsubmit="return confirm('Stop the live camera? The webcam LED will turn off and any active MJPEG stream will end.');">
+                    <button type="submit" class="danger">Stop camera</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if camera_stopped %}
+        <div class="feed-frame" style="aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;margin-top:12px">
+            Camera is stopped. Click Start camera to resume.
+        </div>
+        {% else %}
+        <img src="/video_feed" class="feed-frame" alt="Live feed" style="margin-top:12px">
+        {% endif %}
+
         <p class="muted" style="margin-top:10px">
             Recognition: {{ "enabled" if recognizer_ready else "disabled (run Retrain from the Admin page)" }}.
             Bounding-box colour key: <span class="pill criminal">criminal</span>
