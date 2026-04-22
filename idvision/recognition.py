@@ -120,17 +120,18 @@ class AlertCooldown:
 _cooldown = AlertCooldown()
 
 
-def log_alert(name, category, log_file="alerts_log.txt"):
+def log_alert(name, category, snapshot_path=None, location=None, log_file="alerts_log.txt"):
     if not _cooldown.should_alert(name, category):
         return False
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    add_alert(name, category)
+    add_alert(name, category, snapshot_path=snapshot_path, location=location)
     try:
         with open(log_file, "a", encoding="utf-8") as f:
-            f.write(f"{timestamp} - {name} - {category}\n")
+            suffix = f" @ {location}" if location else ""
+            f.write(f"{timestamp} - {name} - {category}{suffix}\n")
     except OSError as e:
         print(f"[recognition] Could not write alert log: {e}")
-    send_alert_email(name, category, timestamp)
+    send_alert_email(name, category, timestamp, location=location, snapshot_path=snapshot_path)
     return True
 
 

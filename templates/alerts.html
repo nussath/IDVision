@@ -1,0 +1,39 @@
+{% extends "_base.html" %}
+{% block title %}IDVision — Alerts{% endblock %}
+{% block body %}
+{{ navbar(user, is_admin, active) }}
+
+<main>
+    <section class="card">
+        <h2>All alerts ({{ alerts|length }})</h2>
+        {% if alerts %}
+        <table>
+            <tr>
+                <th>When</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Location</th>
+                <th>Snapshot</th>
+            </tr>
+            {% for a in alerts %}
+            <tr>
+                <td class="muted">{{ a.timestamp }}</td>
+                <td>{{ a.person_name }}</td>
+                <td><span class="pill {{ a.category }}">{{ a.category }}</span></td>
+                <td>{{ a.location or "—" }}</td>
+                <td>
+                    {% if a.snapshot_path %}
+                    <a href="/snapshot/{{ a.snapshot_path.split('/')[-1].split('\\')[-1] }}" target="_blank">view</a>
+                    {% else %}
+                    <span class="muted">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p class="empty">No alerts recorded yet.</p>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

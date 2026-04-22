@@ -1,0 +1,51 @@
+{% extends "_base.html" %}
+{% block title %}IDVision — Admin{% endblock %}
+{% block body %}
+{{ navbar(user, is_admin, active) }}
+
+<main>
+    {% if flash %}<div class="flash {{ flash_kind or 'ok' }}">{{ flash }}</div>{% endif %}
+
+    <div class="grid-2">
+        <section class="card">
+            <h2>Recognition model</h2>
+            <p class="muted">
+                Trains LBPH on everything in <code>dataset/</code>, regenerates
+                <code>persons.json</code> and <code>label_map.npy</code>, and reloads
+                the recogniser in-process. Run after adding or removing photos.
+            </p>
+            <form method="post" action="/retrain" class="inline">
+                <button type="submit">Retrain recognition model</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>Email notifications</h2>
+            {% if email_problems %}
+            <p class="muted">
+                Email is <strong>not configured</strong>. Issues:
+                <ul>{% for p in email_problems %}<li>{{ p }}</li>{% endfor %}</ul>
+                Edit <code>.env</code> to set <code>EMAIL_ENABLED=true</code>,
+                <code>SMTP_USER</code>, <code>SMTP_PASSWORD</code>, and
+                <code>ALERT_EMAIL_TO</code>, then restart Uvicorn.
+            </p>
+            {% else %}
+            <p class="muted">
+                Email is configured. Recipients:
+                <code>{{ email_recipients|join(", ") }}</code>.
+            </p>
+            {% endif %}
+            <form method="post" action="/admin/test-email" class="inline">
+                <button type="submit" {% if email_problems %}disabled{% endif %}>Send test email</button>
+            </form>
+        </section>
+    </div>
+
+    <section class="card">
+        <h2>User management</h2>
+        <p class="muted">
+            <a href="/register">Register new user →</a>
+        </p>
+    </section>
+</main>
+{% endblock %}

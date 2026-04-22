@@ -1,0 +1,54 @@
+{% extends "_base.html" %}
+{% block title %}IDVision — Missing persons{% endblock %}
+{% block body %}
+{{ navbar(user, is_admin, active) }}
+
+<main>
+    {% if flash %}<div class="flash {{ flash_kind or 'ok' }}">{{ flash }}</div>{% endif %}
+
+    {% if is_admin %}
+    <section class="card">
+        <h2>Add missing person</h2>
+        <form method="post" action="/missing/add" enctype="multipart/form-data" class="inline">
+            <input name="name" placeholder="Name" required>
+            <div class="row">
+                <input name="age" type="number" placeholder="Age" min="0">
+                <input name="gender" placeholder="Gender">
+            </div>
+            <input name="last_seen" placeholder="Last seen location" required>
+            <input type="file" name="photo" accept="image/*" multiple>
+            <button type="submit">Add missing person</button>
+        </form>
+        <p class="muted" style="margin-top:10px">
+            Photos land under <code>dataset/missing_persons/&lt;id&gt;_&lt;Name&gt;/</code>.
+            Click <a href="/admin">Retrain</a> afterwards to update the recognition model.
+        </p>
+    </section>
+    {% endif %}
+
+    <section class="card">
+        <h2>Missing persons ({{ missing_persons|length }})</h2>
+        {% if missing_persons %}
+        <table>
+            <tr><th>ID</th><th>Name</th><th>Last seen</th><th>Status</th>{% if is_admin %}<th></th>{% endif %}</tr>
+            {% for m in missing_persons %}
+            <tr>
+                <td>{{ m.id }}</td>
+                <td>{{ m.name }}</td>
+                <td>{{ m.last_seen }}</td>
+                <td><span class="pill missing">{{ m.status }}</span></td>
+                {% if is_admin %}
+                <td>
+                    <form method="post" action="/missing/{{ m.id }}/delete" class="inline-action"
+                          onsubmit="return confirm('Delete missing person {{ m.name|e }}?');">
+                        <button type="submit" class="danger">Delete</button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p class="empty">No missing persons added.</p>{% endif %}
+    </section>
+</main>
+{% endblock %}

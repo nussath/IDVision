@@ -1,0 +1,54 @@
+{% extends "_base.html" %}
+{% block title %}IDVision — Criminals{% endblock %}
+{% block body %}
+{{ navbar(user, is_admin, active) }}
+
+<main>
+    {% if flash %}<div class="flash {{ flash_kind or 'ok' }}">{{ flash }}</div>{% endif %}
+
+    {% if is_admin %}
+    <section class="card">
+        <h2>Add criminal</h2>
+        <form method="post" action="/criminals/add" enctype="multipart/form-data" class="inline">
+            <input name="name" placeholder="Name" required>
+            <div class="row">
+                <input name="age" type="number" placeholder="Age" min="0">
+                <input name="gender" placeholder="Gender">
+            </div>
+            <input name="crime_details" placeholder="Crime details" required>
+            <input type="file" name="photo" accept="image/*" multiple>
+            <button type="submit">Add criminal</button>
+        </form>
+        <p class="muted" style="margin-top:10px">
+            Photos land under <code>dataset/criminals/&lt;id&gt;_&lt;Name&gt;/</code>.
+            Click <a href="/admin">Retrain</a> afterwards to update the recognition model.
+        </p>
+    </section>
+    {% endif %}
+
+    <section class="card">
+        <h2>Criminals ({{ criminals|length }})</h2>
+        {% if criminals %}
+        <table>
+            <tr><th>ID</th><th>Name</th><th>Crime</th><th>Status</th>{% if is_admin %}<th></th>{% endif %}</tr>
+            {% for c in criminals %}
+            <tr>
+                <td>{{ c.id }}</td>
+                <td>{{ c.name }}</td>
+                <td>{{ c.crime_details }}</td>
+                <td><span class="pill criminal">{{ c.status }}</span></td>
+                {% if is_admin %}
+                <td>
+                    <form method="post" action="/criminals/{{ c.id }}/delete" class="inline-action"
+                          onsubmit="return confirm('Delete criminal {{ c.name|e }}?');">
+                        <button type="submit" class="danger">Delete</button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}<p class="empty">No criminals added.</p>{% endif %}
+    </section>
+</main>
+{% endblock %}

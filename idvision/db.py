@@ -87,9 +87,19 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             person_name TEXT NOT NULL,
             category TEXT NOT NULL,
-            timestamp TEXT NOT NULL
+            timestamp TEXT NOT NULL,
+            snapshot_path TEXT,
+            location TEXT
         )
         """)
+
+        # Forward-compatible migration for pre-existing alerts tables.
+        cur.execute("PRAGMA table_info(alerts)")
+        alert_cols = {row[1] for row in cur.fetchall()}
+        if "snapshot_path" not in alert_cols:
+            cur.execute("ALTER TABLE alerts ADD COLUMN snapshot_path TEXT")
+        if "location" not in alert_cols:
+            cur.execute("ALTER TABLE alerts ADD COLUMN location TEXT")
 
         cur.execute("SELECT id FROM users WHERE role='admin' LIMIT 1")
         if cur.fetchone() is None:
@@ -250,12 +260,13 @@ def delete_missing_person(person_id):
 
 # ---------- Alerts ----------
 
-def add_alert(person_name, category, timestamp=None):
+def add_alert(person_name, category, timestamp=None, snapshot_path=None, location=None):
     ts = timestamp or _now_iso()
     with _conn() as conn:
         cur = conn.execute(
-            "INSERT INTO alerts (person_name, category, timestamp) VALUES (?, ?, ?)",
-            (person_name, category, ts),
+            """INSERT INTO alerts (person_name, category, timestamp, snapshot_path, location)
+               VALUES (?, ?, ?, ?, ?)""",
+            (person_name, category, ts, snapshot_path, location),
         )
         return cur.lastrowid
 

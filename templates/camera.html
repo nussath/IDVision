@@ -1,0 +1,20 @@
+{% extends "_base.html" %}
+{% block title %}IDVision — Live camera{% endblock %}
+{% block body %}
+{{ navbar(user, is_admin, active) }}
+
+<main>
+    <section class="card">
+        <h2>Live camera feed</h2>
+        <img src="/video_feed" class="feed-frame" alt="Live feed">
+        <p class="muted" style="margin-top:10px">
+            Recognition: {{ "enabled" if recognizer_ready else "disabled (run Retrain from the Admin page)" }}.
+            Bounding-box colour key: <span class="pill criminal">criminal</span>
+            <span class="pill missing">missing</span>
+            <span style="color:var(--warn)">yellow = known-unknown</span> ·
+            <span style="color:var(--ok)">green = detect-only</span>.
+            The number after the name is the raw LBPH confidence (lower = better match).
+        </p>
+    </section>
+</main>
+{% endblock %}

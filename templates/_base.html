@@ -4,6 +4,26 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}IDVision{% endblock %}</title>
+    {% macro navbar(user, is_admin, active) %}
+    <header class="topbar">
+        <h1>IDVision</h1>
+        <div class="who">
+            {{ user.username }}
+            <span class="pill {{ user.role }}">{{ user.role }}</span>
+            <a href="/logout">Logout</a>
+        </div>
+    </header>
+    <nav class="mainnav">
+        <a href="/dashboard" class="{{ 'active' if active == 'dashboard' }}">Dashboard</a>
+        <a href="/camera"    class="{{ 'active' if active == 'camera' }}">Live camera</a>
+        <a href="/criminals" class="{{ 'active' if active == 'criminals' }}">Criminals</a>
+        <a href="/missing"   class="{{ 'active' if active == 'missing' }}">Missing</a>
+        <a href="/alerts"    class="{{ 'active' if active == 'alerts' }}">Alerts</a>
+        {% if is_admin %}
+        <a href="/admin"     class="{{ 'active' if active == 'admin' }}">Admin</a>
+        {% endif %}
+    </nav>
+    {% endmacro %}
     <style>
         :root {
             --bg: #0f1115;
@@ -30,6 +50,8 @@
             padding: 14px 24px;
             background: var(--panel);
             border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 12px;
         }
         header.topbar h1 {
             margin: 0;
@@ -43,6 +65,27 @@
             margin-left: 16px;
         }
         header.topbar a:hover { text-decoration: underline; }
+        nav.mainnav {
+            background: #11141a;
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+        }
+        nav.mainnav a {
+            padding: 12px 14px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+        }
+        nav.mainnav a:hover { color: var(--text); }
+        nav.mainnav a.active {
+            color: var(--text);
+            border-bottom-color: var(--accent);
+        }
         main {
             max-width: 1200px;
             margin: 0 auto;

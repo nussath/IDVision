@@ -2,6 +2,7 @@ import cv2
 
 from . import config
 from .recognition import FaceRecognizer, log_alert, prepare_face
+from .snapshots import save_snapshot
 
 _camera = None
 _face_detector = None
@@ -52,7 +53,15 @@ def gen_frames():
                     if name:
                         label = f"{name} ({category}) {conf:.0f}"
                         color = (0, 0, 255) if category in ("criminal", "crime") else (0, 165, 255)
-                        log_alert(name, category)
+                        # Annotate first so the saved snapshot also includes
+                        # the bbox + label, then save and alert.
+                        cv2.rectangle(frame, (x, y), (x + bw, y + bh), color, 2)
+                        cv2.putText(frame, label, (x, y - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                        snapshot = save_snapshot(frame, name, category)
+                        log_alert(name, category, snapshot_path=snapshot,
+                                  location=config.CAMERA_LOCATION)
+                        continue
                     elif recognizer.ready:
                         label = f"Unknown {conf:.0f}"
                         color = (0, 255, 255)

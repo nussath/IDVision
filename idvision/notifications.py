@@ -1,8 +1,10 @@
+import mimetypes
 import os
 import smtplib
 import ssl
 import threading
 from email.message import EmailMessage
+from pathlib import Path
 
 EMAIL_ENABLED = os.environ.get("EMAIL_ENABLED", "false").lower() in ("1", "true", "yes", "on")
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
@@ -19,6 +21,36 @@ def _is_configured():
     return bool(EMAIL_ENABLED and SMTP_USER and SMTP_PASSWORD and ALERT_EMAIL_TO)
 
 
+def configuration_status():
+    """Human-readable description of what's missing for email delivery."""
+    problems = []
+    if not EMAIL_ENABLED:
+        problems.append("EMAIL_ENABLED is not true")
+    if not SMTP_USER:
+        problems.append("SMTP_USER is empty")
+    if not SMTP_PASSWORD:
+        problems.append("SMTP_PASSWORD is empty")
+    if not ALERT_EMAIL_TO:
+        problems.append("ALERT_EMAIL_TO is empty")
+    return problems
+
+
+def _attach_file(message: EmailMessage, path_str: str):
+    path = Path(path_str)
+    if not path.is_file():
+        return
+    ctype, _ = mimetypes.guess_type(path.name)
+    if not ctype:
+        ctype = "application/octet-stream"
+    maintype, _, subtype = ctype.partition("/")
+    message.add_attachment(
+        path.read_bytes(),
+        maintype=maintype,
+        subtype=subtype or "octet-stream",
+        filename=path.name,
+    )
+
+
 def _send(message: EmailMessage):
     try:
         context = ssl.create_default_context()
@@ -32,9 +64,10 @@ def _send(message: EmailMessage):
         print(f"[notifications] Email send failed: {e}")
 
 
-def send_alert_email(name: str, category: str, timestamp: str):
-    """Non-blocking: spawns a thread to send via SMTP. Silently no-ops if
-    email isn't configured."""
+def send_alert_email(name: str, category: str, timestamp: str,
+                     location: str = None, snapshot_path: str = None):
+    """Non-blocking: spawn a thread to send via SMTP. Silent no-op if
+    email isn't configured. Attaches the snapshot JPEG if provided."""
     if not _is_configured():
         return False
 
@@ -42,13 +75,45 @@ def send_alert_email(name: str, category: str, timestamp: str):
     msg["Subject"] = f"IDVision alert: {category} detected — {name}"
     msg["From"] = ALERT_EMAIL_FROM
     msg["To"] = ", ".join(ALERT_EMAIL_TO)
-    msg.set_content(
-        f"IDVision detection alert\n\n"
-        f"Name:     {name}\n"
-        f"Category: {category}\n"
-        f"Time:     {timestamp}\n\n"
-        f"This is an automated message from the IDVision surveillance system."
-    )
+
+    body_lines = [
+        "IDVision detection alert",
+        "",
+        f"Name:     {name}",
+        f"Category: {category}",
+        f"Time:     {timestamp}",
+    ]
+    if location:
+        body_lines.append(f"Location: {location}")
+    if snapshot_path:
+        body_lines.append(f"Snapshot: attached ({Path(snapshot_path).name})")
+    body_lines += [
+        "",
+        "This is an automated message from the IDVision surveillance system.",
+    ]
+    msg.set_content("\n".join(body_lines))
+
+    if snapshot_path:
+        _attach_file(msg, snapshot_path)
 
     threading.Thread(target=_send, args=(msg,), daemon=True).start()
     return True
+
+
+def send_test_email():
+    """Send a test message so admins can verify SMTP config without waiting
+    for a recognition match. Returns (ok: bool, message: str)."""
+    problems = configuration_status()
+    if problems:
+        return False, "Email not configured: " + "; ".join(problems)
+
+    msg = EmailMessage()
+    msg["Subject"] = "IDVision test email"
+    msg["From"] = ALERT_EMAIL_FROM
+    msg["To"] = ", ".join(ALERT_EMAIL_TO)
+    msg.set_content(
+        "This is a test message from the IDVision dashboard. "
+        "If you received it, SMTP delivery is working."
+    )
+    threading.Thread(target=_send, args=(msg,), daemon=True).start()
+    return True, f"Test email dispatched to {', '.join(ALERT_EMAIL_TO)}."

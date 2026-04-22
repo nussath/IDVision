@@ -27,6 +27,9 @@ RECOGNITION_STREAK_REQUIRED = int(os.environ.get("RECOGNITION_STREAK_REQUIRED", 
 INITIAL_ADMIN_USERNAME = os.environ.get("INITIAL_ADMIN_USERNAME", "").strip()
 INITIAL_ADMIN_PASSWORD = os.environ.get("INITIAL_ADMIN_PASSWORD", "")
 
+CAMERA_LOCATION = os.environ.get("CAMERA_LOCATION", "Camera-1")
+SNAPSHOT_DIR = Path(os.environ.get("SNAPSHOT_DIR", "alerts_snapshots"))
+
 DATASET_DIR = Path("dataset")
 FACE_DETECTOR_MODEL_PATH = "face_detection_yunet_2023mar.onnx"
 ALLOWED_ROLES = {"admin", "viewer"}
