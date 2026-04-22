@@ -8,4 +8,5 @@ surveillance.db
 .env
 alerts_log.txt
 alerts_snapshots/
+desktop.ini
 
