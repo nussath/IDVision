@@ -30,12 +30,11 @@
         {% endif %}
 
         <p class="muted" style="margin-top:10px">
-            Recognition: {{ "enabled" if recognizer_ready else "disabled (run Retrain from the Admin page)" }}.
-            Bounding-box colour key: <span class="pill criminal">criminal</span>
+            Recognition: {{ "enabled" if recognizer_ready else "disabled — retrain from the Admin page" }}.
+            Box colours: <span class="pill criminal">criminal</span>
             <span class="pill missing">missing</span>
-            <span style="color:var(--warn)">yellow = known-unknown</span> ·
-            <span style="color:var(--ok)">green = detect-only</span>.
-            The number after the name is the raw LBPH confidence (lower = better match).
+            <span style="color:var(--warn)">unknown</span> ·
+            <span style="color:var(--ok)">detect only</span>.
         </p>
     </section>
 </main>
