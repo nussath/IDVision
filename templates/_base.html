@@ -42,6 +42,20 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background: var(--bg);
             color: var(--text);
+            position: relative;
+        }
+        .bg-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.06;
+            background-color: var(--bg);
+        }
+        .bg-overlay svg {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
         header.topbar {
             display: flex;
@@ -183,6 +197,98 @@
     </style>
 </head>
 <body>
+    <div class="bg-overlay" aria-hidden="true">
+        <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice"
+             xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <pattern id="dotGrid" x="0" y="0" width="40" height="40"
+                         patternUnits="userSpaceOnUse">
+                    <circle cx="1" cy="1" r="1" fill="#4f8cff"/>
+                </pattern>
+                <symbol id="faceMesh" viewBox="-110 -140 220 280">
+                    <!-- jaw (U-shape) -->
+                    <polyline points="-95,-30 -90,20 -78,60 -60,95 -35,120 0,130 35,120 60,95 78,60 90,20 95,-30"
+                              fill="none" stroke="#4f8cff" stroke-width="1.2"/>
+                    <!-- forehead / hairline arc -->
+                    <path d="M -95 -30 Q 0 -135 95 -30"
+                          fill="none" stroke="#4f8cff" stroke-width="1.2"/>
+                    <!-- left eye -->
+                    <ellipse cx="-42" cy="-18" rx="22" ry="10"
+                             fill="none" stroke="#4f8cff" stroke-width="1"/>
+                    <circle cx="-42" cy="-18" r="4" fill="#4f8cff"/>
+                    <!-- right eye -->
+                    <ellipse cx="42" cy="-18" rx="22" ry="10"
+                             fill="none" stroke="#4f8cff" stroke-width="1"/>
+                    <circle cx="42" cy="-18" r="4" fill="#4f8cff"/>
+                    <!-- brows -->
+                    <path d="M -68 -38 Q -42 -50 -18 -38" fill="none"
+                          stroke="#4f8cff" stroke-width="1"/>
+                    <path d="M  18 -38 Q  42 -50  68 -38" fill="none"
+                          stroke="#4f8cff" stroke-width="1"/>
+                    <!-- nose -->
+                    <path d="M 0 -18 L -6 35 L 0 42 L 6 35 Z" fill="none"
+                          stroke="#4f8cff" stroke-width="1"/>
+                    <!-- mouth -->
+                    <path d="M -28 72 Q 0 88 28 72" fill="none"
+                          stroke="#4f8cff" stroke-width="1"/>
+                    <!-- bracket markers (framing a detection box) -->
+                    <g stroke="#4f8cff" stroke-width="1.5" fill="none">
+                        <path d="M -108 -138 L -108 -118 L -88 -138"/>
+                        <path d="M  108 -138 L  108 -118 L  88 -138"/>
+                        <path d="M -108  138 L -108  118 L -88  138"/>
+                        <path d="M  108  138 L  108  118 L  88  138"/>
+                    </g>
+                    <!-- landmark dots scattered along face -->
+                    <g fill="#4f8cff">
+                        <circle cx="-78" cy="22"  r="1.4"/>
+                        <circle cx="-60" cy="62"  r="1.4"/>
+                        <circle cx="-35" cy="95"  r="1.4"/>
+                        <circle cx="0"   cy="105" r="1.4"/>
+                        <circle cx="35"  cy="95"  r="1.4"/>
+                        <circle cx="60"  cy="62"  r="1.4"/>
+                        <circle cx="78"  cy="22"  r="1.4"/>
+                        <circle cx="-42" cy="-18" r="1.4"/>
+                        <circle cx="42"  cy="-18" r="1.4"/>
+                        <circle cx="0"   cy="42"  r="1.4"/>
+                        <circle cx="-28" cy="72"  r="1.4"/>
+                        <circle cx="28"  cy="72"  r="1.4"/>
+                    </g>
+                </symbol>
+                <symbol id="reticle" viewBox="-60 -60 120 120">
+                    <circle r="55" fill="none" stroke="#4f8cff" stroke-width="1.1"/>
+                    <circle r="38" fill="none" stroke="#4f8cff" stroke-width="0.8"/>
+                    <line x1="-55" y1="0" x2="-20" y2="0" stroke="#4f8cff" stroke-width="0.9"/>
+                    <line x1="20"  y1="0" x2="55"  y2="0" stroke="#4f8cff" stroke-width="0.9"/>
+                    <line x1="0" y1="-55" x2="0" y2="-20" stroke="#4f8cff" stroke-width="0.9"/>
+                    <line x1="0" y1="20"  x2="0" y2="55"  stroke="#4f8cff" stroke-width="0.9"/>
+                    <circle r="3" fill="#4f8cff"/>
+                </symbol>
+            </defs>
+
+            <!-- dotted backdrop -->
+            <rect width="100%" height="100%" fill="url(#dotGrid)"/>
+
+            <!-- five face-mesh instances scattered across the viewport -->
+            <use href="#faceMesh" x="230"  y="240"/>
+            <use href="#faceMesh" x="820"  y="180" transform="translate(820 180) scale(0.7) translate(-820 -180)"/>
+            <use href="#faceMesh" x="1380" y="310"/>
+            <use href="#faceMesh" x="500"  y="700" transform="translate(500 700) scale(0.6) translate(-500 -700)"/>
+            <use href="#faceMesh" x="1150" y="720"/>
+
+            <!-- detection reticles -->
+            <use href="#reticle" x="80"   y="560"/>
+            <use href="#reticle" x="1500" y="80"/>
+            <use href="#reticle" x="980"  y="490"/>
+
+            <!-- faint horizontal scan strips -->
+            <g stroke="#4f8cff" stroke-width="0.6" opacity="0.5">
+                <line x1="0" y1="80"  x2="1600" y2="80"/>
+                <line x1="0" y1="300" x2="1600" y2="300"/>
+                <line x1="0" y1="520" x2="1600" y2="520"/>
+                <line x1="0" y1="740" x2="1600" y2="740"/>
+            </g>
+        </svg>
+    </div>
     {% block body %}{% endblock %}
 </body>
 </html>
