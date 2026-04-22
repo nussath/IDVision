@@ -92,26 +92,10 @@
         color: var(--muted);
         font-size: 12px;
     }
-    /* subtle scan-line animation over the eye */
-    @keyframes scan {
-        0%   { transform: translateY(-100%); opacity: 0; }
-        10%  { opacity: 0.8; }
-        90%  { opacity: 0.8; }
-        100% { transform: translateY(100%); opacity: 0; }
-    }
-    .scan-bar {
-        position: absolute;
-        left: 10%; right: 10%;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, var(--accent), transparent);
-        box-shadow: 0 0 12px var(--accent);
-        animation: scan 3.8s ease-in-out infinite;
-    }
 </style>
 
 <section class="hero">
     <div class="hero-art">
-        <div class="scan-bar"></div>
         <!-- Stylised eye with a camera lens as its iris -->
         <svg viewBox="0 0 440 320" xmlns="http://www.w3.org/2000/svg" aria-label="IDVision illustration">
             <defs>
