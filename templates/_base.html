@@ -68,6 +68,15 @@
             color: var(--accent);
         }
         a:hover { text-decoration: underline; }
+        /* Custom magnifying-glass cursor. Circle lens + handle, light so it
+           sits visibly on the dark UI. Hotspot centred on the lens. */
+        html, body {
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'><circle cx='12' cy='12' r='8' fill='rgba(230,232,235,0.12)' stroke='%23e6e8eb' stroke-width='1.8'/><line x1='17.5' y1='17.5' x2='26' y2='26' stroke='%23e6e8eb' stroke-width='2.6' stroke-linecap='round'/></svg>") 12 12, auto;
+        }
+        a, button, input, select, textarea, label,
+        [role="button"], .inline-action button {
+            cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'><circle cx='12' cy='12' r='8' fill='rgba(255,255,255,0.25)' stroke='%23ffffff' stroke-width='1.8'/><line x1='17.5' y1='17.5' x2='26' y2='26' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round'/></svg>") 12 12, pointer;
+        }
         .bg-overlay {
             position: fixed;
             inset: 0;
